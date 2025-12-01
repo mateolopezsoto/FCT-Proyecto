@@ -3,6 +3,52 @@ import { AuthService } from './services/auth.service';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 
+// Función auxiliar para verificar la autenticación (usa la misma lógica que el Guard de Reservas)
+const authGuard = async () => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+    const token = localStorage.getItem('token'); 
+
+    if (auth.estaLogueado()) {
+      return true;
+    }
+    
+    if (token) {
+      try {
+        await auth.comprobarSesion(); 
+      } catch {
+        // Fallo de sesión, el servicio ya limpia el token
+      }
+    }
+
+    if (auth.estaLogueado()) {
+      return true;
+    } else {
+      router.navigate(['/']);
+      return false;
+    }
+};
+
+// Función auxiliar para verificar el rol de Administrador
+const adminGuard = async () => {
+    const router = inject(Router);
+    const auth = inject(AuthService);
+
+    // Aseguramos que la sesión esté cargada (debería ser redundante si se usa después de authGuard)
+    if (!auth.estaLogueado() && localStorage.getItem('token')) {
+        await auth.comprobarSesion();
+    }
+    
+    // Verificamos el rol (Asumiendo que id_rol 2 es Administrador según tu DB)
+    if (auth.usuario() && auth.usuario()!.rol.nome_rol === 'Administrador') {
+        return true;
+    } else {
+        router.navigate(['/reservas']); // Redirigir a una ruta donde el usuario sí tiene acceso
+        return false;
+    }
+};
+
+
 export const routes: Routes = [
   // Ruta raíz → Login
   {
@@ -16,44 +62,37 @@ export const routes: Routes = [
     loadComponent: () => import('./registro/registro.component').then(m => m.RegistroComponent)
   },
   
-  // Reservas
+  // Reservas (Ruta de Usuario Normal)
   {
     path: 'reservas',
     loadComponent: () => import('./reservas/reservas.component').then(c => c.ReservasComponent),
-    // Lógica del canActivate Guard corregida
-    canActivate: [async () => {
-      const auth = inject(AuthService);
-      const router = inject(Router);
-      const token = localStorage.getItem('token'); // Se lee el token
-
-      // 1. Si el signal ya indica que está logueado, permite el acceso.
-      if (auth.estaLogueado()) {
-        return true;
-      }
-      
-      // 2. Si hay un token (p. ej., después de un login o al recargar)
-      //    pero el signal no está actualizado, forzamos la comprobación asíncrona.
-      if (token) {
-        // Esperamos a que la sesión se compruebe completamente.
-        // Esto actualiza el signal `estaLogueado` a true o false.
-        try {
-          await auth.comprobarSesion(); 
-        } catch {
-          // Si comprobarSesion falla (token expirado/inválido), 
-          // el servicio ya habrá limpiado el token y signals.
-        }
-      }
-
-      // 3. Evaluar el estado final del signal después de la comprobación.
-      if (auth.estaLogueado()) {
-        return true;
-      } else {
-        // Si no hay token o la comprobación falló, redirigir a la raíz (Login)
-        router.navigate(['/']);
-        return false;
-      }
-    }]
+    canActivate: [authGuard] // Solo requiere estar logueado
   },
+
+  // RUTAS DE ADMINISTRACIÓN (NUEVAS)
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard], // Requiere estar logueado Y ser Admin
+    children: [
+        {
+            path: 'instalacions',
+            loadComponent: () => import('./admin/admin.component').then(c => c.AdminInstalacionsComponent),
+        },
+        // Ruta para editar (necesita el ID)
+        {
+            path: 'instalacions/editar/:id',
+            // Podrías crear un componente AdminInstalacionFormComponent para esto
+            loadComponent: () => import('./admin/admin.component').then(c => c.AdminInstalacionsComponent), 
+        },
+        // Ruta para añadir
+        {
+            path: 'instalacions/engadir',
+            loadComponent: () => import('./admin/admin.component').then(c => c.AdminInstalacionsComponent), 
+        },
+        { path: '', redirectTo: 'instalacions', pathMatch: 'full' }
+    ]
+  },
+
 
   // Ruta 404/Wildcard
   { path: '**', redirectTo: ''}, 

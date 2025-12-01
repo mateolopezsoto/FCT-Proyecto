@@ -33,9 +33,9 @@ class Usuario extends Authenticatable
     ];
 
     // Para que Laravel no toque los nombres automáticos
-    protected function setKeysForSaveQuery($query)
+    public function getAuthPassword()
     {
-        return $query->where('id_usuario', $this->getKey());
+        return $this->contrasinal;
     }
 
     public function rol(): BelongsTo

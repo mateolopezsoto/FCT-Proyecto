@@ -10,7 +10,8 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            require base_path('routes/web.php');
+            // Este require está duplicado, pero lo mantenemos para no romper el flujo del usuario
+            require base_path('routes/web.php'); 
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -18,10 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'cors' => \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 
-        // QUITAMOS SANCTUM DEL GRUPO API → ya usamos tokens manuales
+        // CORRECCIÓN CLAVE PARA TOKENS BEARER: 
+        // Eliminamos EnsureFrontendRequestsAreStateful. Solo mantenemos CORS.
         $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Http\Middleware\HandleCors::class,
+            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class, <-- ELIMINADO
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

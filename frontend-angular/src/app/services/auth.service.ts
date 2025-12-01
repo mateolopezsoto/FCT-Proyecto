@@ -1,9 +1,15 @@
-// src/app/services/auth.service.ts
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
+
+// DEFINICIÓN DE INTERFACES CORREGIDA PARA RESOLVER EL ERROR "Property 'rol' does not exist"
+
+interface Rol {
+  id_rol: number;
+  nome_rol: string; // <-- Propiedad usada para la comprobación de rol
+}
 
 interface Usuario {
   id_usuario: number;
@@ -11,6 +17,8 @@ interface Usuario {
   apelidos: string;
   correo: string;
   telefono?: string;
+  id_rol: number; 
+  rol: Rol;     // <--- ESTO ES LO QUE ARREGLA EL ERROR. Objeto de relación cargado por Laravel.
 }
 
 interface RegisterData {
@@ -35,14 +43,14 @@ export class AuthService {
   // ESTADO GLOBAL REACTIVO
   usuario = signal<Usuario | null>(null);
   estaLogueado = signal(false);
-  loading = signal(false);  // ← AQUÍ LO PONEMOS, al mismo nivel que los otros signals
+  loading = signal(false);
 
   constructor(private http: HttpClient, private router: Router) {
     this.comprobarSesion();
   }
 
   async register(datos: RegisterData) {
-    this.loading.set(true);  // ← empieza el loading
+    this.loading.set(true);
     try {
 
       const payload = {
@@ -50,11 +58,11 @@ export class AuthService {
       apelidos: datos.apelidos,
       correo: datos.correo,
       telefono: datos.telefono ?? null,
-      password: datos.contrasinal,                    // Laravel quiere "password"
-      password_confirmation: datos.contrasinal       // y quiere que coincidir con este
+      password: datos.contrasinal,
+      password_confirmation: datos.contrasinal
     };
 
-      // Agora si facer o rexistro
+      // Ahora sí hacer el registro
       const res: any = await lastValueFrom(
         this.http.post(`${this.apiUrl}/register`, payload)
       );
@@ -78,26 +86,27 @@ export class AuthService {
 
       await Swal.fire('Erro', msg, 'error');
     } finally {
-      this.loading.set(false);  // ← siempre se apaga
+      this.loading.set(false);
     }
   }
 
   async login(credenciais: LoginData) {
-    this.loading.set(true);  // ← empieza
+    this.loading.set(true);
     try {
       const payload = {
         correo: credenciais.correo,
-        password: credenciais.contrasinal
+        password: credenciais.contrasinal 
       };
 
       const res: any = await lastValueFrom(
         this.http.post(`${this.apiUrl}/login`, payload)
       );
 
-      // Gardamos o token en LocalStorage
+      // Guardamos el token en LocalStorage
       localStorage.setItem('token', res.access_token);
 
-      this.usuario.set(res.user);
+      // El tipo 'res.user' ahora coincide con la interfaz 'Usuario'
+      this.usuario.set(res.user); 
       this.estaLogueado.set(true);
 
       await Swal.fire({
@@ -112,9 +121,11 @@ export class AuthService {
     });
       this.router.navigate(['/reservas']);
     } catch (err: any) {
+      // Limpiamos el token si el login falla
+      localStorage.removeItem('token'); 
       await Swal.fire('Erro', err.error?.message || 'Credenciais incorrectas', 'error');
     } finally {
-      this.loading.set(false);  // ← siempre se apaga
+      this.loading.set(false);
     }
   }
 
@@ -123,7 +134,7 @@ async comprobarSesion() {
   if (!token) {
     this.usuario.set(null);
     this.estaLogueado.set(false);
-    return; // ← sale sin hacer petición
+    return;
   }
 
   if (this.estaLogueado() && this.usuario()) {
@@ -132,10 +143,12 @@ async comprobarSesion() {
 
   this.loading.set(true);
   try {
+    // Este endpoint de Laravel (UsuarioController@user) DEBE cargar el rol: return $request->user()->load('rol');
     const res: any = await lastValueFrom(
       this.http.get(`${this.apiUrl}/user`)
     );
-    this.usuario.set(res);
+    
+    this.usuario.set(res); 
     this.estaLogueado.set(true);
   } catch (err: any) {
     // Si falla (token expirado o inválido), lo borramos
@@ -154,6 +167,10 @@ async comprobarSesion() {
         this.http.post(`${this.apiUrl}/logout`, {})
       );
     } catch {}
+    
+    // Garantizamos que el token se borra localmente
+    localStorage.removeItem('token'); 
+    
     this.usuario.set(null);
     this.estaLogueado.set(false);
     await Swal.fire('Sesión pechada', 'Volve pronto!', 'info');

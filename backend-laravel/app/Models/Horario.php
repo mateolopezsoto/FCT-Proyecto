@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Horario extends Model
 {
@@ -18,4 +19,9 @@ class Horario extends Model
         'hora_inicio' => 'string',
         'hora_fin' => 'string'
     ];
+
+    public function reservas(): HasMany
+    {
+        return $this->hasMany(Reserva::class, 'id_horario', 'id_horario');
+    }
 }

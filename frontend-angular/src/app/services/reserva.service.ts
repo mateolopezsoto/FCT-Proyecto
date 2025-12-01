@@ -56,11 +56,36 @@ export class ReservaService {
     // this.authService.loading.set(true); 
 
     try {
-      const [tipos, instalacions, horarios] = await Promise.all([
-        lastValueFrom(this.http.get<TipoInstalacion[]>(`${this.apiUrl}/tipos-instalacion`)),
-        lastValueFrom(this.http.get<Instalacion[]>(`${this.apiUrl}/instalacions`)),
-        lastValueFrom(this.http.get<Horario[]>(`${this.apiUrl}/horarios`))
-      ]);
+      let tipos: TipoInstalacion[] = [];
+      let instalacions: Instalacion[] = [];
+      let horarios: Horario[] =  [];
+
+      try {
+        tipos = await lastValueFrom(
+          this.http.get<TipoInstalacion[]>(`${this.apiUrl}/tipos-instalacion`)
+        );
+      } catch (err) {
+        console.warn('Fallo esperado en Tipos de Instalación (401 o 404).');
+        // El error se maneja, pero no detenemos el resto del flujo.
+      }
+      
+      // LLAMADA 2: Obtener Instalaciones
+      try {
+        instalacions = await lastValueFrom(
+          this.http.get<Instalacion[]>(`${this.apiUrl}/instalacions`)
+        );
+      } catch (err) {
+        console.warn('Fallo esperado en Instalaciones (401 o 404).');
+      }
+
+      // LLAMADA 3: Obtener Horarios
+      try {
+        horarios = await lastValueFrom(
+          this.http.get<Horario[]>(`${this.apiUrl}/horarios`)
+        );
+      } catch (err) {
+        console.warn('Fallo esperado en Horarios (401 o 404).');
+      }
 
       this.tipos.set(tipos || []);
       this.instalacions.set(instalacions || []);
