@@ -11,36 +11,40 @@ class InstalacionController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * Retorna todas las instalaciones disponibles, verificando el estado de reserva para hoy.
+     * Retorna todas las instalaciones con su estado de disponibilidad HOY.
      */
     public function index()
     {
-        // El middleware 'auth:sanctum' ya ha verificado el token para llegar aquí.
+        // El middleware 'auth:sanctum' ya ha verificado el token.
         
         $instalacions = Instalacion::with(['tipo'])->get()->map(function ($i) {
             
             $hoxe = Carbon::now()->format('Y-m-d');
             
-            // Comprobación de que la instalación no esté reservada y confirmada para hoy
-            $ocupada = $i->reservas()
+            // 1. Comprobación de reserva para el día de hoy (estado 'Confirmada')
+            // Se debe evitar crear reservas si la instalación está 'En Mantemento'.
+            $reservada_hoxe = $i->reservas()
                 ->where('data_reserva', $hoxe)
-                ->where('estado', 'Confirmada') // Usamos 'Confirmada' para coincidir con la DB
+                ->where('estado', 'Confirmada')
                 ->exists();
             
-            // Estado de la instalación basado en la columna 'estado' (Disponible, En Mantemento, etc.)
+            // 2. Comprobación del estado general de la instalación (columna 'estado')
             $esta_dispoñible = strtolower($i->estado) === 'disponible';
             
+            // 3. Determinar el estado final de disponibilidad (booleano)
+            $disponible_final = $esta_dispoñible && !$reservada_hoxe;
+
             return [
                 'id_instalacion' => $i->id_instalacion,
                 'nome' => $i->nome,
                 'capacidade' => $i->capacidade,
-                'estado' => $i->estado,
+                'estado_general' => $i->estado, // Estado de la columna DB
                 'tipo' => [
                     'id_tipo' => $i->tipo?->id_tipo,
                     'nome_tipo' => $i->tipo?->nome_tipo
                 ],
-                // Es disponible si no está ocupada HOY Y su estado general es 'Disponible'
-                'disponible' => !$ocupada && $esta_dispoñible
+                // Propiedad usada por Angular para el botón y la vista
+                'disponible' => $disponible_final 
             ];
         });
         
@@ -48,50 +52,12 @@ class InstalacionController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-        //
+        // ...
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Instalacion $instalacion)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Instalacion $instalacion)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Instalacion $instalacion)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Instalacion $instalacion)
-    {
-        //
-    }
+    // ... (otros métodos)
 }

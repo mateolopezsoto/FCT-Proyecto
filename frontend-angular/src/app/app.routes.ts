@@ -69,30 +69,6 @@ export const routes: Routes = [
     canActivate: [authGuard] // Solo requiere estar logueado
   },
 
-  // RUTAS DE ADMINISTRACIÓN (NUEVAS)
-  {
-    path: 'admin',
-    canActivate: [authGuard, adminGuard], // Requiere estar logueado Y ser Admin
-    children: [
-        {
-            path: 'instalacions',
-            loadComponent: () => import('./admin/admin.component').then(c => c.AdminInstalacionsComponent),
-        },
-        // Ruta para editar (necesita el ID)
-        {
-            path: 'instalacions/editar/:id',
-            // Podrías crear un componente AdminInstalacionFormComponent para esto
-            loadComponent: () => import('./admin/admin.component').then(c => c.AdminInstalacionsComponent), 
-        },
-        // Ruta para añadir
-        {
-            path: 'instalacions/engadir',
-            loadComponent: () => import('./admin/admin.component').then(c => c.AdminInstalacionsComponent), 
-        },
-        { path: '', redirectTo: 'instalacions', pathMatch: 'full' }
-    ]
-  },
-
 
   // Ruta 404/Wildcard
   { path: '**', redirectTo: ''}, 

@@ -33,8 +33,8 @@ class ReservaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'id_instalacion' => 'required|exists:Instalacion, id_instalacion',
-            'id_horario' => 'required|exists:Horario, id_horario',
+            'id_instalacion' => 'required|exists:Instalacion,id_instalacion',
+            'id_horario' => 'required|exists:Horario,id_horario',
             'data_reserva' => 'required|date|after_or_equal:today'
         ]);
 

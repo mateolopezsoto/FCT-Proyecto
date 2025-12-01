@@ -1,38 +1,67 @@
-<div class="container">
-  <header>
-    <img src="/assets/logo_principal.png" alt="Logo" class="logo">
+<header>
+    <!-- Logo -->
+    <img src="/assets/logo_principal.png" alt="Logo Centro Deportivo">
+    
     <div class="top-buttons">
-      <button routerLink="/">As miñas reservas</button>
-      <button routerLink="/registro">Perfil</button>
-      <button (click)="authService.logout()" class="logout">Pechar sesión</button>
+        <!-- RUTA 1: As miñas reservas (Histórico) -->
+        <button (click)="router.navigate(['/mis-reservas'])">As miñas reservas</button>
+        <!-- RUTA 2: Perfil -->
+        <button (click)="router.navigate(['/perfil'])">Perfil</button>
+        <!-- Acción de Logout -->
+        <button (click)="authService.logout()" class="logout">Pechar sesión</button>
     </div>
-  </header>
+</header>
 
-  <div class="main">
-    <aside class="filtros">
-      <label>Tipo de instalación</label>
-      <select [(ngModel)]="filtroTipo" (ngModelChange)="filtrar()">
-        <option value="">Todos</option>
-        <option *ngFor="let t of reservaService.tipos()" [value]="t.id_tipo">{{ t.nome_tipo }}</option>
-      </select>
+<div class="main-container">
+    <!-- Panel lateral de filtros -->
+    <aside class="filters">
+        <label for="tipo">Tipo de instalación</label>
+        <select id="tipo" name="tipo" [(ngModel)]="filtroTipo" (ngModelChange)="filtrar()">
+            <option value="">Todos</option>
+            <option *ngFor="let t of reservaService.tipos()" [value]="t.id_tipo">{{ t.nome_tipo }}</option>
+        </select>
 
-      <label>Data</label>
-      <input type="date" [(ngModel)]="filtroData" (change)="filtrar()">
+        <label for="data">Data</label>
+        <!-- La fecha afecta la disponibilidad -->
+        <input type="date" id="data" name="data" [(ngModel)]="filtroData" (ngModelChange)="filtrar()">
+
+        <label for="horario">Horario</label>
+        <select id="horario" name="horario" [(ngModel)]="filtroHorarioId" (ngModelChange)="filtrar()">
+            <option value="">Todos</option>
+            <!-- Lista los horarios cargados desde el backend -->
+            <option *ngFor="let h of reservaService.horarios()" [value]="h.id_horario">
+                {{ h.dia_semana }} ({{ h.hora_inicio | slice:0:5 }} - {{ h.hora_fin | slice:0:5 }})
+            </option>
+        </select>
     </aside>
 
-    <section class="grid">
-      <div class="card" *ngFor="let inst of instalacionsFiltradas()">
-        <h3>{{ inst.nome }}</h3>
-        <p><strong>Tipo:</strong> {{ inst.tipo.nome_tipo }}</p>
-        <p><strong>Capacidade:</strong> {{ inst.capacidade }}</p>
-        <p><strong>Estado:</strong>
-          <span [class.disponible]="inst.disponible" [class.ocupado]="!inst.disponible">
-            {{ inst.disponible ? 'Libre' : 'Ocupada' }}
-          </span>
-        </p>
-        <button>Reservar</button>
+    <!-- Corpo principal - grella de tarxetas -->
+    <section class="cards-container">
+        
+        <!-- Mensajes de Carga y Error -->
+        <div *ngIf="reservaService.loading()">Cargando datos e dispoñibilidade...</div>
+        <div *ngIf="!reservaService.loading() && instalacionsFiltradas().length === 0">
+            Non se atoparon instalacións dispoñibles que coincidan cos filtros.
+        </div>
 
-      </div>
+        <div class="card" *ngFor="let inst of instalacionsFiltradas()">
+            <h3>{{ inst.nome }}</h3>
+            <p>Tipo: {{ inst.tipo?.nome_tipo }}</p>
+            <p>Capacidade: {{ inst.capacidade }} persoas</p>
+            
+            <p>Disponibilidade: 
+                <span [style.color]="inst.disponible ? 'green' : 'red'">
+                    <!-- Muestra Libre/Ocupada basado en el booleano 'disponible' -->
+                    {{ inst.disponible ? 'Libre' : inst.estado_general }}
+                </span>
+            </p>
+            
+            <button 
+                (click)="reservar(inst)"
+                [disabled]="!inst.disponible || reservaService.loading()"
+            >
+                Reservar Data e Hora
+            </button>
+        </div>
     </section>
-  </div>
 </div>
