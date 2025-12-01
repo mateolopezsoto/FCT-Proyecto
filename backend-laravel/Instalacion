@@ -1,0 +1,21 @@
+
+   Laravel\Prompts\Exceptions\NonInteractiveValidationException 
+
+  The name is required.
+
+  at vendor/laravel/prompts/src/Concerns/Interactivity.php:32
+     28▕ 
+     29▕         $this->validate($default);
+     30▕ 
+     31▕         if ($this->state === 'error') {
+  ➜  32▕             throw new NonInteractiveValidationException($this->error);
+     33▕         }
+     34▕ 
+     35▕         return $default;
+     36▕     }
+
+      [2m+13 vendor frames [22m
+
+  14  artisan:16
+      Illuminate\Foundation\Application::handleCommand()
+
